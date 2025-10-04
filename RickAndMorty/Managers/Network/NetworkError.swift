@@ -7,11 +7,11 @@
 
 import Foundation
 
-enum NetworkError: Error {
-    case badURL
+enum NetworkError: Error, Hashable {
+    case badResponse
     case badRequest
     case serverError
-    case notFound
-    case badResponse
+    case badGateway
+    case badURL
     case decodeError
 }

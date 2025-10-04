@@ -7,6 +7,8 @@
 
 import Foundation
 
+// MARK: NetworkClientProtocol
+
 protocol NetworkClientProtocol {
     func call<T: Decodable>(urlString: String,
                             method: NetworkMethod,
@@ -14,12 +16,12 @@ protocol NetworkClientProtocol {
                             of type: T.Type) async throws -> T
 }
 
+// MARK: NetworkClient
+
 final class NetworkClient: NetworkClientProtocol {
 
-    // MARK: - Private
     private let urlSession: URLSessionProtocol
 
-    // MARK: - Init
     init(urlSession: URLSessionProtocol) {
         self.urlSession = urlSession
     }
@@ -30,14 +32,11 @@ final class NetworkClient: NetworkClientProtocol {
                             of type: T.Type) async throws -> T {
 
         var urlComponents = URLComponents(string: urlString)
-
-        // Query params
         urlComponents?.addQueryParams(queryParams)
 
         guard let url = urlComponents?.url else {
             throw NetworkError.badURL
         }
-
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue.uppercased()
 
@@ -50,14 +49,15 @@ final class NetworkClient: NetworkClientProtocol {
 
         switch response.statusCode {
         case 200..<300:
-            let result = try JSONDecoder().decode(T.self, from: data)
-            return result
+            return try JSONDecoder().decode(T.self, from: data)
         case 400..<499:
-            throw NetworkError.notFound
+            throw NetworkError.badRequest
         case 500:
             throw NetworkError.serverError
+        case 502:
+            throw NetworkError.badGateway
         default:
-            throw NetworkError.badRequest
+            throw NetworkError.badResponse
         }
     }
 }
@@ -66,16 +66,18 @@ final class NetworkClient: NetworkClientProtocol {
 
 private extension URLComponents {
     mutating func addQueryParams(_ queryParams: [String: Any?]?) {
-        guard let queryParams else { return }
+        guard let queryParams else {
+            return
+        }
         queryItems = queryParams.compactMap { key, value in
-            if let stringValue = value as? String, !stringValue.isEmpty {
-                return URLQueryItem(name: key, value: stringValue)
-            }
-            if let otherValue = value,
-               let stringValue = String(describing: otherValue)
-                .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-               !stringValue.isEmpty {
-                return URLQueryItem(name: key, value: stringValue)
+                if let stringValue = value as? String,
+                   !stringValue.isEmpty {
+                    return URLQueryItem(name: key, value: stringValue)
+                }
+                if let otherValue = value,
+                   let stringValue = String(describing: otherValue)
+                    .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed), !stringValue.isEmpty {
+                    return URLQueryItem(name: key, value: stringValue)
             }
             return nil
         }
