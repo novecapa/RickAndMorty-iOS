@@ -17,24 +17,25 @@ protocol SwiftDataContainerProtocol {
 // MARK: SwiftDataContainer
 
 final class SwiftDataContainer: SwiftDataContainerProtocol {
-
-    internal let container: ModelContainer
-
-    init(isStoredInMemoryOnly: Bool) {
-        if let disk = try? ModelContainer(
-            for: SDCharacter.self, SDLocation.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: isStoredInMemoryOnly)
-        ) {
-            self.container = disk
-        } else if let memory = try? ModelContainer(
-            for: SDCharacter.self, SDLocation.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        ) {
-            assertionFailure("Falling back to in-memory ModelContainer")
-            self.container = memory
-        } else {
-            assertionFailure("Unable to create any ModelContainer")
-            preconditionFailure("ModelContainer creation failed")
+    
+    let container: ModelContainer
+    
+    init(isStoredInMemoryOnly: Bool = false) {
+        do {
+            self.container = try ModelContainer(
+                for: SDCharacter.self, SDLocation.self,
+                configurations: ModelConfiguration(isStoredInMemoryOnly: isStoredInMemoryOnly)
+            )
+        } catch {
+            assertionFailure("Persistent ModelContainer creation failed: \(error). Falling back to in-memory storage.")
+            do {
+                self.container = try ModelContainer(
+                    for: SDCharacter.self, SDLocation.self,
+                    configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+                )
+            } catch {
+                preconditionFailure("Unable to create even in-memory ModelContainer: \(error)")
+            }
         }
     }
 }
