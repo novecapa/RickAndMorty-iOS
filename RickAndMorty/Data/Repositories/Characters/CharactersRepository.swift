@@ -85,7 +85,7 @@ private extension SDCharacter {
     }
 }
 
-// MARK: -
+// MARK: - Character
 
 private extension Character {
     var toSD: SDCharacter {
@@ -94,14 +94,14 @@ private extension Character {
                     status: status,
                     species: species,
                     type: type,
-                    genger: gender,
+                    gender: gender,
                     image: image,
                     location: location.toSD,
                     episode: episode)
     }
 }
 
-// MARK: -
+// MARK: - Location
 
 private extension Location {
     var toSD: SDLocation {

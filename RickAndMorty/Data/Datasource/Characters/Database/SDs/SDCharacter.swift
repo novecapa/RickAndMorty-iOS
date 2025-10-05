@@ -27,7 +27,7 @@ class SDCharacter {
         status: String,
         species: String,
         type: String,
-        genger: String,
+        gender: String,
         image: String,
         location: SDLocation,
         episode: [String]
@@ -37,7 +37,7 @@ class SDCharacter {
         self.status = status
         self.species = species
         self.type = type
-        self.gender = genger
+        self.gender = gender
         self.image = image
         self.location = location
         self.episode = episode

@@ -7,16 +7,32 @@
 
 import Foundation
 
-// MARK: CharactersRemoteProtocol
+// MARK: - CharactersRemoteProtocol
 
 protocol CharactersRemoteProtocol {
     func getCharacters(page: Int) async throws -> CharactersDTO
     func searchCharacters(for name: String, page: Int) async throws -> CharactersDTO
 }
 
-// MARK: CharactersRemote
+// MARK: - CharactersRemote
 
 final class CharactersRemote: CharactersRemoteProtocol {
+
+    private enum Endpoints {
+
+        // MARK: Base URL
+        private static let baseURL = "https://rickandmortyapi.com/api/"
+
+        // MARK: Endpoints
+        case character
+
+        var rawValue: String {
+            switch self {
+            case .character:
+                return Endpoints.baseURL + "character"
+            }
+        }
+    }
 
     private enum Constants {
         static let page = "page"

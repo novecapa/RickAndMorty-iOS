@@ -1,5 +1,5 @@
 //
-//  CharactersListViewModel.swift
+//  CharactersViewModel.swift
 //  RickAndMorty
 //
 //  Created by Josep Cerdá Penadés on 4/10/25.
@@ -7,17 +7,19 @@
 
 import SwiftUI
 
-final class CharactersListViewModel: ObservableObject {
+final class CharactersViewModel: ObservableObject {
 
     @Published var characters: [Character] = []
+
+    private var debounceTimer: Timer?
+    private let debounceInterval: TimeInterval = 0.75
     @Published var searchText: String {
         didSet {
-            if searchText.count > 1 {
-                resetPagination()
-                searchCharacters()
-            } else if searchText.isEmpty {
-                resetPagination()
-                fetchCharacters()
+            debounceTimer?.invalidate()
+            debounceTimer = Timer.scheduledTimer(withTimeInterval: debounceInterval,
+                                                 repeats: false) { [weak self] _ in
+                guard let self = self else { return }
+                self.performSearch()
             }
         }
     }
@@ -25,7 +27,15 @@ final class CharactersListViewModel: ObservableObject {
     @Published var showAlert: Bool = false
     @Published var errorMessage: String = ""
 
-    private var isLoading = false
+    @Published var showDetail: Bool = false
+    var selectedCharacter: Character? = nil {
+        didSet {
+            guard selectedCharacter != nil else { return }
+            showDetail = true
+        }
+    }
+
+    @Published var isLoading = false
     private(set) var currentPage = 1
     private var hasNewPage = true
 
@@ -35,23 +45,58 @@ final class CharactersListViewModel: ObservableObject {
         self.useCase = useCase
         self.searchText = ""
     }
+}
 
-    private func resetPagination() {
+// MARK: - Private extensions
+
+// MARK: - Pagination
+
+private extension CharactersViewModel {
+    func resetPagination() {
         currentPage = 1
         hasNewPage = true
         scrollToTop = true
     }
 
-    private var canLoadNewPage: Bool {
+    var canLoadNewPage: Bool {
         hasNewPage && !isLoading
     }
+}
 
-    private func handleError(_ error: Error) {
+// MARK: - Result handler
+
+private extension CharactersViewModel {
+    func handleError(_ error: Error) {
         showAlert = true
         errorMessage = error.localizedDescription
     }
 
-    private func searchCharacters() {
+    func populateResult(result: Characters) {
+        if currentPage == 1 {
+            characters.removeAll()
+            characters.append(contentsOf: result.characters)
+        } else {
+            characters.append(contentsOf: result.characters)
+        }
+        currentPage += result.addNewPage
+        hasNewPage = result.hasNextPage
+    }
+}
+
+// MARK: - Search
+
+private extension CharactersViewModel {
+    func performSearch() {
+        if searchText.count > 1 {
+            resetPagination()
+            searchCharacters()
+        } else if searchText.isEmpty {
+            resetPagination()
+            fetchCharacters()
+        }
+    }
+
+    func searchCharacters() {
         guard canLoadNewPage else { return }
 
         Task { @MainActor in
@@ -65,22 +110,11 @@ final class CharactersListViewModel: ObservableObject {
             }
         }
     }
-
-    private func populateResult(result: Characters) {
-        if currentPage == 1 {
-            characters.removeAll()
-            characters.append(contentsOf: result.characters)
-        } else {
-            characters.append(contentsOf: result.characters)
-        }
-        currentPage += result.addNewPage
-        hasNewPage = result.hasNextPage
-    }
 }
 
-// MARK: Public methods
+// MARK: - Public methods
 
-extension CharactersListViewModel {
+extension CharactersViewModel {
     func fetchCharacters() {
         guard canLoadNewPage else { return }
         guard searchText.count <= 1 else {

@@ -20,6 +20,7 @@ protocol CharactersDatabaseProtocol {
 
 // MARK: CharactersDatabase
 
+@MainActor
 final class CharactersDatabase: CharactersDatabaseProtocol {
 
     private let database: SwiftDataContainerProtocol
@@ -35,9 +36,10 @@ final class CharactersDatabase: CharactersDatabaseProtocol {
     }
 
     func searchCharacter(for name: String) throws -> [SDCharacter] {
-        let fetchDescriptor = FetchDescriptor<SDCharacter>(predicate: #Predicate {
-            $0.name.localizedStandardContains(name)
-        }, sortBy: [SortDescriptor<SDCharacter>(\.id)])
+        let fetchDescriptor = FetchDescriptor<SDCharacter>(
+            predicate: #Predicate { $0.name.localizedStandardContains(name) },
+            sortBy: [SortDescriptor<SDCharacter>(\.id)]
+        )
         return try database.container.mainContext.fetch(fetchDescriptor)
     }
 
