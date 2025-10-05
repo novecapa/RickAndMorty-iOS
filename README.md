@@ -52,6 +52,10 @@ To run the project locally, follow these steps:
 
 Contributions to this project are welcome! If you find any bugs or have suggestions for improvements, please feel free to open an issue or submit a pull request.
 
+## Demo
+
+![output](https://github.com/user-attachments/assets/0c31d283-f96b-440c-bbda-7ef721d8681f)
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE). Feel free to use and modify the code as needed.
