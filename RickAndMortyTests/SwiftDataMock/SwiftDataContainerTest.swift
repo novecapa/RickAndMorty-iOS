@@ -21,8 +21,10 @@ final class SwiftDataContainerTest: SwiftDataContainerProtocol {
     @MainActor
     static func getModelContainer(inMemory: Bool) -> ModelContainer {
         do {
-            let container = try ModelContainer(for: SDCharacter.self, SDLocation.self,
-                                               configurations: ModelConfiguration(isStoredInMemoryOnly: inMemory))
+            let container = try ModelContainer(
+                for: SDCharacter.self, SDLocation.self,
+                configurations: ModelConfiguration(isStoredInMemoryOnly: inMemory)
+            )
             return container
         } catch {
             fatalError("Failed to create model container for previewing: \(error.localizedDescription)")

@@ -12,7 +12,7 @@ final class CharactersViewModel: ObservableObject {
     @Published var characters: [Character] = []
 
     private var debounceTimer: Timer?
-    private let debounceInterval: TimeInterval = 0.75
+    private let debounceInterval: TimeInterval
     @Published var searchText: String {
         didSet {
             debounceTimer?.invalidate()
@@ -41,9 +41,11 @@ final class CharactersViewModel: ObservableObject {
 
     private let useCase: CharactersUseCaseProtocol
 
-    init (useCase: CharactersUseCaseProtocol) {
+    init (useCase: CharactersUseCaseProtocol,
+          debounceInterval: TimeInterval = 0.75) {
         self.useCase = useCase
         self.searchText = ""
+        self.debounceInterval = debounceInterval
     }
 }
 

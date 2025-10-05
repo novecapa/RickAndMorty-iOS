@@ -21,8 +21,7 @@ final class SwiftDataContainer: SwiftDataContainerProtocol {
     init(isStoredInMemoryOnly: Bool) {
         do {
             self.container = try ModelContainer(
-                for: SDCharacter.self,
-                SDLocation.self,
+                for: SDCharacter.self, SDLocation.self,
                 configurations: ModelConfiguration(isStoredInMemoryOnly: isStoredInMemoryOnly)
             )
         } catch {

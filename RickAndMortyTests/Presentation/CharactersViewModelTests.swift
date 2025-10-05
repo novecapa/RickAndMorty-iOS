@@ -8,13 +8,14 @@
 import Foundation
 
 import XCTest
+import Combine
 @testable import RickAndMorty
 
 final class CharactersViewModelTests: XCTestCase {
 
     enum Constants {
-        static let waitSec: CGFloat = 2.5
         static let searchString = "Rick Sanchez"
+        static let testTimeOut: TimeInterval = 3
     }
 
     var urlSession: URLSessionTest!
@@ -25,7 +26,7 @@ final class CharactersViewModelTests: XCTestCase {
     var remoteRepository: CharactersRepository!
     var useCase: CharactersUseCase!
     var viewModel: CharactersViewModel!
-    var view: CharactersView!
+    var bag = Set<AnyCancellable>()
 
     @MainActor
     override func setUp() {
@@ -38,8 +39,7 @@ final class CharactersViewModelTests: XCTestCase {
                                                      database: database,
                                                      utils: utils)
         self.useCase = CharactersUseCase(repository: remoteRepository)
-        self.viewModel = CharactersViewModel(useCase: useCase)
-        self.view = CharactersView(viewModel: viewModel)
+        self.viewModel = CharactersViewModel(useCase: useCase, debounceInterval: 0)
     }
 
     override func tearDown() {
@@ -51,33 +51,78 @@ final class CharactersViewModelTests: XCTestCase {
         remoteRepository = nil
         useCase = nil
         viewModel = nil
-        view = nil
+        bag.removeAll()
     }
     
+    @MainActor
     func test_viewmodel_fetch() {
-        // When
+        // Given: ViewModel con pipeline real y debounce=0; observamos 'characters' esperando la primera lista no vacía
+        let exp = expectation(description: "characters filled")
+
+        viewModel.$characters
+            .dropFirst()
+            .filter { !$0.isEmpty }
+            .prefix(1)
+            .receive(on: RunLoop.main)
+            .sink { chars in
+                XCTAssertGreaterThan(chars.count, 0)
+                exp.fulfill()
+            }
+            .store(in: &bag)
+
+        // When: solicitamos la primera página
         viewModel.fetchCharacters()
 
-        // Then
-        let expectation = XCTestExpectation(description: "Wait for it...")
-        DispatchQueue.main.asyncAfter(deadline: .now() + Constants.waitSec) {
-            XCTAssertGreaterThan(self.viewModel.characters.count, 0)
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: Constants.waitSec)
+        // Then: recibimos resultados y la paginación avanza
+        wait(for: [exp], timeout: Constants.testTimeOut)
+        XCTAssertEqual(viewModel.currentPage, 2)
     }
-    
+
+    @MainActor
     func test_view_model_search() {
-        // When
+        // Given: reconfiguramos entorno para búsqueda (URLSessionTestSearch), VM con debounce=0 y suscripción a 'characters' (primera lista no vacía)
+        let urlSession = URLSessionTestSearch(statusCode: 200)
+        networkClient = NetworkClient(urlSession: urlSession)
+        remoteData = CharactersRemote(networkClient: networkClient)
+        database = CharactersDatabase(database: SwiftDataContainerTest.shared)
+        utils = UtilsWithConnectionTest()
+        remoteRepository = CharactersRepository(remote: remoteData,
+                                                database: database,
+                                                utils: utils)
+        useCase = CharactersUseCase(repository: remoteRepository)
+        viewModel = CharactersViewModel(useCase: useCase, debounceInterval: 0)
+
+        let exp = expectation(description: "search results filled")
+
+        viewModel.$characters
+            .dropFirst()
+            .filter { !$0.isEmpty }
+            .prefix(1)
+            .receive(on: RunLoop.main)
+            .sink { chars in
+                XCTAssertGreaterThan(chars.count, 0)
+                exp.fulfill()
+            }
+            .store(in: &bag)
+
+        // When: establecemos el texto de búsqueda (>1 char) para disparar 'performSearch'
         viewModel.searchText = Constants.searchString
 
-        // Then
-        let expectation = XCTestExpectation(description: "Wait for it...")
-        DispatchQueue.main.asyncAfter(deadline: .now() + Constants.waitSec) {
-            XCTAssertGreaterThan(self.viewModel.characters.count, 0)
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: Constants.waitSec)
+        // Then: recibimos resultados de búsqueda, la página permanece en 1 y 'scrollToTop' se activa
+        wait(for: [exp], timeout: Constants.testTimeOut)
+        XCTAssertEqual(viewModel.currentPage, 1)
+        XCTAssertTrue(viewModel.scrollToTop)
+    }
+    
+    @MainActor
+    func test_select_character_sets_show_detail_true() {
+        // Given: 'showDetail' comienza en false
+        XCTAssertFalse(viewModel.showDetail)
+        let character: Character = .mock
+        // When: asignamos un Character como seleccionado
+        viewModel.selectedCharacter = character
+        // Then: 'showDetail' pasa a true
+        XCTAssertTrue(viewModel.showDetail)
     }
     
     func test_get_remote_characters_not_empty() async throws {
@@ -88,7 +133,7 @@ final class CharactersViewModelTests: XCTestCase {
             // Then
             XCTAssertGreaterThan(res.characters.count, 0)
         } catch {
-            fatalError(error.localizedDescription)
+            XCTFail(error.localizedDescription)
         }
     }
     
@@ -113,7 +158,7 @@ final class CharactersViewModelTests: XCTestCase {
             // Then
             XCTAssertEqual(res.characters.count, 1)
         } catch {
-            fatalError(error.localizedDescription)
+            XCTFail(error.localizedDescription)
         }
     }
     
@@ -137,7 +182,7 @@ final class CharactersViewModelTests: XCTestCase {
             // Then
             XCTAssertEqual(res.characters.count, 0)
         } catch {
-            fatalError(error.localizedDescription)
+            XCTFail(error.localizedDescription)
         }
     }
 
@@ -153,7 +198,7 @@ final class CharactersViewModelTests: XCTestCase {
             // Then
             XCTAssertEqual(list.characters.count, dbList.count)
         } catch {
-            fatalError(error.localizedDescription)
+            XCTFail(error.localizedDescription)
         }
     }
 
@@ -169,7 +214,7 @@ final class CharactersViewModelTests: XCTestCase {
             // Then
             XCTAssertEqual(dbSearch.count, 1)
         } catch {
-            fatalError(error.localizedDescription)
+            XCTFail(error.localizedDescription)
         }
     }
 
@@ -185,7 +230,7 @@ final class CharactersViewModelTests: XCTestCase {
             // Then
             XCTAssertEqual(dbSearch.count, 0)
         } catch {
-            fatalError(error.localizedDescription)
+            XCTFail(error.localizedDescription)
         }
     }
 
@@ -202,7 +247,7 @@ final class CharactersViewModelTests: XCTestCase {
             // Then
             XCTAssertEqual(dbList.count, 0)
         } catch {
-            fatalError(error.localizedDescription)
+            XCTFail(error.localizedDescription)
         }
     }
 
@@ -224,12 +269,16 @@ final class CharactersViewModelTests: XCTestCase {
         viewModel.fetchCharacters()
 
         // Then
-        let expectation = XCTestExpectation(description: "Wait for it...")
-        DispatchQueue.main.asyncAfter(deadline: .now() + Constants.waitSec) {
-            XCTAssertEqual(self.viewModel.characters.count, 0)
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: Constants.waitSec)
+        let exp = expectation(description: "alert shown")
+        viewModel.$showAlert
+            .dropFirst()
+            .sink { shown in
+                if shown { exp.fulfill() }
+            }
+            .store(in: &bag)
+
+        wait(for: [exp], timeout: Constants.testTimeOut)
+        XCTAssertEqual(viewModel.characters.count, 0)
     }
 
     @MainActor
@@ -250,12 +299,16 @@ final class CharactersViewModelTests: XCTestCase {
         viewModel.fetchCharacters()
 
         // Then
-        let expectation = XCTestExpectation(description: "Wait for it...")
-        DispatchQueue.main.asyncAfter(deadline: .now() + Constants.waitSec) {
-            XCTAssertEqual(self.viewModel.characters.count, 0)
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: Constants.waitSec)
+        let exp = expectation(description: "alert shown")
+        viewModel.$showAlert
+            .dropFirst()
+            .sink { shown in
+                if shown { exp.fulfill() }
+            }
+            .store(in: &bag)
+
+        wait(for: [exp], timeout: Constants.testTimeOut)
+        XCTAssertEqual(viewModel.characters.count, 0)
     }
 
     @MainActor
@@ -278,14 +331,20 @@ final class CharactersViewModelTests: XCTestCase {
             viewModel.fetchCharacters()
 
             // Then
-            let expectation = XCTestExpectation(description: "Wait for it...")
-            DispatchQueue.main.asyncAfter(deadline: .now() + Constants.waitSec) {
-                XCTAssertEqual(self.viewModel.characters.count, 0)
-                expectation.fulfill()
-            }
-            wait(for: [expectation], timeout: Constants.waitSec)
+            let exp = expectation(description: "fetch completed")
+            viewModel.$isLoading
+                .dropFirst()
+                .filter { $0 == false }
+                .sink { _ in
+                    exp.fulfill()
+                }
+                .store(in: &bag)
+
+            wait(for: [exp], timeout: Constants.testTimeOut)
+            XCTAssertEqual(self.viewModel.characters.count, 0)
+            XCTAssertFalse(self.viewModel.showAlert)
         } catch {
-            fatalError(error.localizedDescription)
+            XCTFail(error.localizedDescription)
         }
     }
 
@@ -311,7 +370,83 @@ final class CharactersViewModelTests: XCTestCase {
             // Then
             XCTAssertEqual(res.characters.count, 0)
         } catch {
-            fatalError(error.localizedDescription)
+            XCTFail(error.localizedDescription)
         }
+    }
+
+    @MainActor
+    func test_error_sets_alert_and_message_on_fetch() {
+        // Given
+        let urlSession = URLSessionTest(statusCode: 500)
+        networkClient = NetworkClient(urlSession: urlSession)
+        remoteData = CharactersRemote(networkClient: networkClient)
+        database = CharactersDatabase(database: SwiftDataContainerTest.shared)
+        utils = UtilsWithConnectionTest()
+        remoteRepository = CharactersRepository(remote: remoteData,
+                                                database: database,
+                                                utils: utils)
+        useCase = CharactersUseCase(repository: remoteRepository)
+        viewModel = CharactersViewModel(useCase: useCase, debounceInterval: 0)
+        let exp = expectation(description: "alert shown")
+
+        viewModel.$showAlert
+            .dropFirst()
+            .sink { shown in
+                if shown { exp.fulfill() }
+            }
+            .store(in: &bag)
+
+        // When
+        viewModel.fetchCharacters()
+
+        // Then
+        wait(for: [exp], timeout: Constants.testTimeOut)
+        XCTAssertFalse(viewModel.errorMessage.isEmpty)
+    }
+
+    @MainActor
+    func test_is_loading_toggles_around_fetch() {
+        // Given
+        var states: [Bool] = []
+        let exp = expectation(description: "loading toggled off")
+
+        viewModel.$isLoading
+            .dropFirst()
+            .sink { value in
+                states.append(value)
+                if states.count >= 2 { // true then false
+                    exp.fulfill()
+                }
+            }
+            .store(in: &bag)
+
+        // When
+        viewModel.fetchCharacters()
+
+        // Then
+        wait(for: [exp], timeout: 1.0)
+        XCTAssertEqual(states.first, true)
+        XCTAssertEqual(states.last, false)
+    }
+
+    @MainActor
+    func test_search_sets_scroll_to_top_true() {
+        // Given
+        XCTAssertFalse(viewModel.scrollToTop)
+        let exp = expectation(description: "scrollToTop set")
+
+        viewModel.$scrollToTop
+            .dropFirst()
+            .sink { value in
+                if value { exp.fulfill() }
+            }
+            .store(in: &bag)
+
+        // When
+        viewModel.searchText = "Ri" // > 1 char triggers search
+
+        // Then
+        wait(for: [exp], timeout: Constants.testTimeOut)
+        XCTAssertTrue(viewModel.scrollToTop)
     }
 }
