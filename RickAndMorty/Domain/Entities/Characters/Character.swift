@@ -40,7 +40,7 @@ struct Character: Identifiable, Equatable {
         }
     }
 
-    // MARK: - Detail
+    // MARK: Detail
     var appearsOn: String {
         "\("Appears on".localized()) \(episode.count) \("episode(s)".localized())"
     }

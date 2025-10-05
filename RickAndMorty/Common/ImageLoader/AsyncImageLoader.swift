@@ -22,7 +22,7 @@ struct AsyncImageLoader: View {
     init(
         url: URL?,
         loader: ImageLoader = ImageLoader(),
-        placeHolder: Image? = nil
+        placeHolder: Image? = Image(.placeHolder)
     ) {
         self.url = url
         _loader = StateObject(wrappedValue: loader)
@@ -36,14 +36,17 @@ struct AsyncImageLoader: View {
                     .resizable()
                     .scaledToFit()
                     .opacity(isImageVisible ? 1 : 0)
-                    .animation(.easeInOut(duration: Constants.animationDuration), value: isImageVisible)
+                    .animation(.easeInOut(duration: Constants.animationDuration),
+                               value: isImageVisible
+                    )
             } else {
                 ZStack {
                     if let placeHolder {
                         placeHolder
+                            .resizable()
+                            .scaledToFit()
                     }
                 }
-                .scaledToFit()
                 .background(Constants.backgroundColor)
             }
         }

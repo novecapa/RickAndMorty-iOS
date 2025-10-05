@@ -18,9 +18,9 @@ final class Log {
         print("\(data.prettyPrintedJSONString ?? "")")
         print("\(icon) 🔼 [\(code)] \(url)")
         if let curl = convertToCurl(request: request) {
-            print("----> cURL")
+            print("🔽🔽 cURL 🔽🔽")
             print(curl)
-            print("<---- cURL")
+            print("🔼🔼 cURL 🔼🔼")
         }
         print("------------------------------------------")
     }

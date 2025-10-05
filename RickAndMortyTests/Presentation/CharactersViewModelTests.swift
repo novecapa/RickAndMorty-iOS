@@ -56,7 +56,7 @@ final class CharactersViewModelTests: XCTestCase {
     
     @MainActor
     func test_viewmodel_fetch() {
-        // Given: ViewModel con pipeline real y debounce=0; observamos 'characters' esperando la primera lista no vacía
+        // Given
         let exp = expectation(description: "characters filled")
 
         viewModel.$characters
@@ -70,17 +70,17 @@ final class CharactersViewModelTests: XCTestCase {
             }
             .store(in: &bag)
 
-        // When: solicitamos la primera página
+        // When
         viewModel.fetchCharacters()
 
-        // Then: recibimos resultados y la paginación avanza
+        // Then
         wait(for: [exp], timeout: Constants.testTimeOut)
         XCTAssertEqual(viewModel.currentPage, 2)
     }
 
     @MainActor
     func test_view_model_search() {
-        // Given: reconfiguramos entorno para búsqueda (URLSessionTestSearch), VM con debounce=0 y suscripción a 'characters' (primera lista no vacía)
+        // Given
         let urlSession = URLSessionTestSearch(statusCode: 200)
         networkClient = NetworkClient(urlSession: urlSession)
         remoteData = CharactersRemote(networkClient: networkClient)
@@ -105,10 +105,10 @@ final class CharactersViewModelTests: XCTestCase {
             }
             .store(in: &bag)
 
-        // When: establecemos el texto de búsqueda (>1 char) para disparar 'performSearch'
+        // When
         viewModel.searchText = Constants.searchString
 
-        // Then: recibimos resultados de búsqueda, la página permanece en 1 y 'scrollToTop' se activa
+        // Then
         wait(for: [exp], timeout: Constants.testTimeOut)
         XCTAssertEqual(viewModel.currentPage, 1)
         XCTAssertTrue(viewModel.scrollToTop)
@@ -116,12 +116,14 @@ final class CharactersViewModelTests: XCTestCase {
     
     @MainActor
     func test_select_character_sets_show_detail_true() {
-        // Given: 'showDetail' comienza en false
+        // Given
         XCTAssertFalse(viewModel.showDetail)
         let character: Character = .mock
-        // When: asignamos un Character como seleccionado
+
+        // When
         viewModel.selectedCharacter = character
-        // Then: 'showDetail' pasa a true
+
+        // Then
         XCTAssertTrue(viewModel.showDetail)
     }
     

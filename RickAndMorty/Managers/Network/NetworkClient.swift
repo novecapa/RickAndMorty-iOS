@@ -21,9 +21,12 @@ protocol NetworkClientProtocol {
 final class NetworkClient: NetworkClientProtocol {
 
     private let urlSession: URLSessionProtocol
+    private let decoder: JSONDecoder
 
-    init(urlSession: URLSessionProtocol) {
+    init(urlSession: URLSessionProtocol,
+         decoder: JSONDecoder = JSONDecoder()) {
         self.urlSession = urlSession
+        self.decoder = decoder
     }
 
     func call<T: Decodable>(urlString: String,
@@ -32,11 +35,20 @@ final class NetworkClient: NetworkClientProtocol {
                             of type: T.Type) async throws -> T {
 
         var urlComponents = URLComponents(string: urlString)
-        urlComponents?.addQueryParams(queryParams)
+
+        // Query params
+        if let queryParams {
+            var items = urlComponents?.queryItems ?? []
+            for (key, value) in queryParams {
+                items.append(URLQueryItem(name: key, value: "\(value)"))
+            }
+            urlComponents?.queryItems = items
+        }
 
         guard let url = urlComponents?.url else {
             throw NetworkError.badURL
         }
+
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue.uppercased()
 
@@ -49,7 +61,7 @@ final class NetworkClient: NetworkClientProtocol {
 
         switch response.statusCode {
         case 200..<300:
-            return try JSONDecoder().decode(T.self, from: data)
+            return try decoder.decode(T.self, from: data)
         case 400..<499:
             throw NetworkError.badRequest
         case 500:
@@ -58,28 +70,6 @@ final class NetworkClient: NetworkClientProtocol {
             throw NetworkError.badGateway
         default:
             throw NetworkError.badResponse
-        }
-    }
-}
-
-// MARK: URLComponents
-
-private extension URLComponents {
-    mutating func addQueryParams(_ queryParams: [String: Any?]?) {
-        guard let queryParams else {
-            return
-        }
-        queryItems = queryParams.compactMap { key, value in
-                if let stringValue = value as? String,
-                   !stringValue.isEmpty {
-                    return URLQueryItem(name: key, value: stringValue)
-                }
-                if let otherValue = value,
-                   let stringValue = String(describing: otherValue)
-                    .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed), !stringValue.isEmpty {
-                    return URLQueryItem(name: key, value: stringValue)
-            }
-            return nil
         }
     }
 }

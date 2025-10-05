@@ -105,7 +105,8 @@ private extension CharactersViewModel {
             do {
                 defer { isLoading = false }
                 isLoading = true
-                let result = try await useCase.searchCharacters(for: searchText, page: currentPage)
+                let result = try await useCase.searchCharacters(for: searchText,
+                                                                page: currentPage)
                 populateResult(result: result)
             } catch {
                 handleError(error)
