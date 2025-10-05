@@ -22,9 +22,9 @@ final class Utils: UtilsProtocol {
 
 private final class Reachability {
 
-    // Note: SCNetworkReachability is deprecated in iOS 17.4,
-    // kept here for deterministic sync checks (fast, non-blocking).
-    // In production, prefer NWPathMonitor for continuous monitoring.
+    /// Note: SCNetworkReachability is deprecated in iOS 17.4,
+    /// kept here for deterministic sync checks (fast, non-blocking).
+    /// In production, prefer NWPathMonitor for continuous monitoring.
 
     static var isConnectedToNetwork: Bool {
         var zeroAddress = sockaddr_in()
