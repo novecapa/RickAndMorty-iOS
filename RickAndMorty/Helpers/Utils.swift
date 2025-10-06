@@ -8,9 +8,13 @@
 import Foundation
 import SystemConfiguration
 
+// MARK: - UtilsProtocol
+
 protocol UtilsProtocol {
     var existsConnection: Bool { get }
 }
+
+// MARK: - Utils
 
 final class Utils: UtilsProtocol {
     var existsConnection: Bool {

@@ -10,6 +10,7 @@ import SwiftUI
 struct CharactersDetailView: View {
 
     enum Constants {
+        static let closeImageName: String = "xmark"
         static let circleDiam: CGFloat = 20
         static let fontSize: CGFloat = 17
         static let paddingSize: CGFloat = 8
@@ -32,12 +33,13 @@ struct CharactersDetailView: View {
                     Button {
                         dismiss()
                     } label: {
-                        Image(systemName: "xmark")
+                        Image(systemName: Constants.closeImageName)
                             .tint(.white)
                     }
                     .padding()
                 }
-                AsyncImageLoader(url: viewModel.characterDetail.imageUrl)
+                let character = viewModel.characterDetail
+                AsyncImageLoader(url: character.imageUrl)
                     .scaledToFit()
                     .background(.customBlack)
                 VStack(alignment: .leading) {
@@ -46,33 +48,33 @@ struct CharactersDetailView: View {
                             .frame(width: Constants.circleDiam,
                                    height: Constants.circleDiam,
                                    alignment: .leading)
-                            .foregroundColor(viewModel.characterDetail.statusColor)
-                        Text(viewModel.characterDetail.status)
+                            .foregroundColor(character.statusColor)
+                        Text(character.status)
                             .lineLimit(1)
                             .font(.notoSans(.medium(Constants.fontSize)))
                             .foregroundColor(.white)
                     }
-                    Text(viewModel.characterDetail.name)
+                    Text(character.name)
                         .lineLimit(1)
                         .font(.notoSans(.bold(Constants.fontSize)))
                         .foregroundColor(.white)
-                    if !viewModel.characterDetail.type.isEmpty {
+                    if !character.type.isEmpty {
                         Text(viewModel.characterDetail.type)
                             .lineLimit(1)
                             .font(.notoSans(.medium(Constants.fontSize)))
                             .foregroundColor(.white)
                     }
-                    if !viewModel.characterDetail.species.isEmpty {
+                    if !character.species.isEmpty {
                         Text(viewModel.characterDetail.species)
                             .lineLimit(2)
                             .font(.notoSans(.medium(Constants.fontSize)))
                             .foregroundColor(.white)
                     }
-                    Text(viewModel.characterDetail.gender)
+                    Text(character.gender)
                         .lineLimit(1)
                         .font(.notoSans(.medium(Constants.fontSize)))
                         .foregroundColor(.white)
-                    Text(viewModel.characterDetail.appearsOn)
+                    Text(character.appearsOn)
                         .lineLimit(1)
                         .font(.notoSans(.medium(Constants.fontSize)))
                         .foregroundColor(.white)

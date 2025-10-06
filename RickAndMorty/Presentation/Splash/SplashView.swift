@@ -11,7 +11,7 @@ struct SplashView: View {
 
     private enum Constants {
         static let sizeFrame: CGFloat = 250
-        static let duration: Double = 3
+        static let duration: Double = 2.5
     }
 
     @EnvironmentObject private var appRootManager: AppRootManager
