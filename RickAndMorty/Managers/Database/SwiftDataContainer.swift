@@ -27,14 +27,22 @@ final class SwiftDataContainer: SwiftDataContainerProtocol {
                 configurations: ModelConfiguration(isStoredInMemoryOnly: isStoredInMemoryOnly)
             )
         } catch {
-            assertionFailure("Persistent ModelContainer creation failed: \(error). Falling back to in-memory storage.")
+            assertionFailure(
+                """
+                Persistent ModelContainer creation failed: \(error). Falling back to in-memory storage.
+                """
+            )
             do {
                 self.container = try ModelContainer(
                     for: SDCharacter.self, SDLocation.self,
                     configurations: ModelConfiguration(isStoredInMemoryOnly: true)
                 )
             } catch {
-                preconditionFailure("Unable to create even in-memory ModelContainer: \(error)")
+                preconditionFailure(
+                """
+                Unable to create even in-memory ModelContainer: \(error)
+                """
+                )
             }
         }
     }

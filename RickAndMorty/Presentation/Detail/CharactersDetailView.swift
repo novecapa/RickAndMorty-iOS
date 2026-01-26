@@ -86,6 +86,10 @@ struct CharactersDetailView: View {
     }
 }
 
+#if DEBUG
+
 #Preview {
     CharactersDetailViewBuilderMock().build()
 }
+
+#endif
